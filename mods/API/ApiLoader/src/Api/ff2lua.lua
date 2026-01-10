@@ -56,26 +56,30 @@ end
 function Api.ff2luat(filepath, backgroundColor)
 	local file = io.open(filepath, 'rb')
 	if not file then error('Can\'t open farbfeld image: ' .. dump(filepath)) end
-	if not file:read(8) == 'farbfeld' then error('Not farbfeld image: ' .. dump(filepath)) end
+	local ff = file:read('*a') -- binary!
+	file:close()
+	if not ff:sub(1,8) == 'farbfeld' then error('Not farbfeld image: ' .. dump(filepath)) end
 
 	if not backgroundColor then backgroundColor = '#000000FF' end
 	--HACK: normalizing colorstring for future string comparison ('#000' -> '#000000FF')
 	backgroundColor = core.colorspec_to_colorstring(core.colorspec_to_table(backgroundColor))
 
 	---@type ColoredDotsTable
-	local dots = { size = { w = uintb2num(file:read(4)), h = uintb2num(file:read(4)) } }
+	local dots = { size = { w = uintb2num(ff:sub(9,12)), h = uintb2num(ff:sub(13,16)) } }
 
+	local cursor
 	for i = 1,dots.size.h do
 		for j = 1,dots.size.w do
-			local color_t = {
-				r = uint16ToUint8(uintb2num(file:read(2))),
-				g = uint16ToUint8(uintb2num(file:read(2))),
-				b = uint16ToUint8(uintb2num(file:read(2))),
-				a = uint16ToUint8(uintb2num(file:read(2)))
+			cursor = 16 + ((i-1)*dots.size.w + j-1)*8 + 1
+			local colorT = {
+				r = uint16ToUint8(uintb2num(ff:sub(cursor,  cursor+1))),
+				g = uint16ToUint8(uintb2num(ff:sub(cursor+2,cursor+3))),
+				b = uint16ToUint8(uintb2num(ff:sub(cursor+4,cursor+5))),
+				a = uint16ToUint8(uintb2num(ff:sub(cursor+6,cursor+7)))
 			}
 
 			---@type string @ColorString
-			local color = core.colorspec_to_colorstring(color_t)
+			local color = core.colorspec_to_colorstring(colorT)
 
 			if color ~= backgroundColor then
 				if not dots[color] then
@@ -86,8 +90,6 @@ function Api.ff2luat(filepath, backgroundColor)
 			end
 		end
 	end
-
-	file:close()
 
 	return dots
 end
