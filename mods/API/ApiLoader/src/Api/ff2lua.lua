@@ -58,6 +58,10 @@ function Api.ff2luat(filepath, backgroundColor)
 	if not file then error('Can\'t open farbfeld image: ' .. dump(filepath)) end
 	local ff = file:read('*a') -- binary!
 	file:close()
+	-- TODO: make it decompressing gzip format -> https://en.wikipedia.org/wiki/Gzip
+	-- I should skip 10 bytes in a beginning, read how many extra fields after it, skip them too, and skip last 8 bytes
+	-- (read wiki for information).
+	-- if filepath:sub(-3) == '.gz' then ff = core.decompress(ff, 'deflate') end
 	if not ff:sub(1,8) == 'farbfeld' then error('Not farbfeld image: ' .. dump(filepath)) end
 
 	if not backgroundColor then backgroundColor = '#000000FF' end
